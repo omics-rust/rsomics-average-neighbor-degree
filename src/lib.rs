@@ -58,6 +58,12 @@ impl Graph {
     pub fn n(&self) -> usize {
         self.idx_to_node.len()
     }
+
+    /// Degree of node `i` matching `nx.Graph.degree`: a self-loop contributes 2.
+    /// Adjacency stores a self-loop once, so add 1 back for it.
+    pub fn degree(&self, i: usize) -> usize {
+        self.adj[i].len() + usize::from(self.adj[i].contains(&i))
+    }
 }
 
 impl Default for Graph {
@@ -92,15 +98,15 @@ pub fn parse_edgelist(text: &str) -> Graph {
 /// Compute average neighbor degree for every node.
 ///
 /// Matches `networkx.average_neighbor_degree(G)` exactly:
-///   - degree(v) = number of distinct neighbors (simple graph, no self-loops counted twice)
-///   - avg[v] = sum(degree(w) for w in adj[v]) / degree(v)
+///   - degree(v) counts a self-loop twice (as `nx.Graph.degree` does)
+///   - avg[v] = sum(degree(w) for w in adj[v]) / degree(v), where a self-loop
+///     lists v as its own neighbor once
 ///   - isolated nodes → 0.0
 ///
 /// Output is sorted lexicographically by original node name.
 pub fn average_neighbor_degree(g: &Graph) -> Vec<(String, f64)> {
     let n = g.n();
-    // degree array: for a simple undirected graph this is adj[i].len()
-    let deg: Vec<usize> = (0..n).map(|i| g.adj[i].len()).collect();
+    let deg: Vec<usize> = (0..n).map(|i| g.degree(i)).collect();
 
     let mut result: Vec<(String, f64)> = (0..n)
         .map(|i| {

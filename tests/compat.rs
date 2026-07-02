@@ -151,6 +151,57 @@ fn parallel_edges_deduped() {
 }
 
 #[test]
+fn self_loop_basic() {
+    // nx counts a self-loop twice in degree; the looping node is its own
+    // neighbor once. Golden from NetworkX 3.6.1.
+    // edges: a-a (self), a-b  => deg(a)=3, deg(b)=1
+    let edges = [("a", "a"), ("a", "b")];
+    let got = build(&edges);
+    let expected = [("a", 1.3333333333333333_f64), ("b", 3.0_f64)];
+    let worst = check(&got, &expected);
+    eprintln!("self_loop_basic worst err: {worst:.2e}");
+}
+
+#[test]
+fn self_loop_with_duplicate_edge() {
+    // edges: n1-n2, n2-n1 (dup), n2-n3, n3-n3 (self). Golden from NetworkX 3.6.1.
+    let edges = [("n1", "n2"), ("n2", "n1"), ("n2", "n3"), ("n3", "n3")];
+    let got = build(&edges);
+    let expected = [
+        ("n1", 2.0_f64),
+        ("n2", 2.0_f64),
+        ("n3", 1.6666666666666667_f64),
+    ];
+    let worst = check(&got, &expected);
+    eprintln!("self_loop_with_duplicate_edge worst err: {worst:.2e}");
+}
+
+#[test]
+fn two_self_loops_joined() {
+    // edges: x-x, y-y, x-y. Golden from NetworkX 3.6.1: {x:2.0, y:2.0}
+    let edges = [("x", "x"), ("y", "y"), ("x", "y")];
+    let got = build(&edges);
+    let expected = [("x", 2.0_f64), ("y", 2.0_f64)];
+    let worst = check(&got, &expected);
+    eprintln!("two_self_loops_joined worst err: {worst:.2e}");
+}
+
+#[test]
+fn self_loop_in_path() {
+    // edges: p-q, q-q, q-r, r-s. Golden from NetworkX 3.6.1.
+    let edges = [("p", "q"), ("q", "q"), ("q", "r"), ("r", "s")];
+    let got = build(&edges);
+    let expected = [
+        ("p", 4.0_f64),
+        ("q", 1.75_f64),
+        ("r", 2.5_f64),
+        ("s", 2.0_f64),
+    ];
+    let worst = check(&got, &expected);
+    eprintln!("self_loop_in_path worst err: {worst:.2e}");
+}
+
+#[test]
 fn gnm50_200_s1() {
     // Golden from nx.gnm_random_graph(50, 200, seed=1), NetworkX 3.6.1
     let edges: &[(&str, &str)] = &[
@@ -486,7 +537,7 @@ fn manual_avg_neighbor_deg(
     k: usize,
 ) -> Vec<(String, f64)> {
     let n = g.n().min(k);
-    let deg: Vec<usize> = (0..g.n()).map(|i| g.adj[i].len()).collect();
+    let deg: Vec<usize> = (0..g.n()).map(|i| g.degree(i)).collect();
     (0..n)
         .map(|i| {
             let d = deg[i];
