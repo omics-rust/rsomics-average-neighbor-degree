@@ -1,6 +1,6 @@
 [package]
 name = "rsomics-average-neighbor-degree"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.91"
 description = "Average neighbor degree of graph nodes — value-exact port of networkx.average_neighbor_degree"

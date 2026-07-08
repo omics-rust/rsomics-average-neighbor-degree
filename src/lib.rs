@@ -73,12 +73,15 @@ impl Default for Graph {
 }
 
 /// Parse an edge-list from text (whitespace-delimited `u v` lines).
-/// Lines starting with `#` and blank lines are skipped.
+///
+/// A `#` begins a comment anywhere in the line: `nx.parse_edgelist` truncates
+/// at the first `#` before tokenising, so `1 2#note` is edge (1,2) and `0 #x`
+/// is a single token (skipped). Blank/all-comment lines are skipped.
 pub fn parse_edgelist(text: &str) -> Graph {
     let mut g = Graph::new();
     for line in text.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
+        let line = line.split('#').next().unwrap_or("").trim();
+        if line.is_empty() {
             continue;
         }
         let mut parts = line.split_whitespace();

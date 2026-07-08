@@ -136,6 +136,25 @@ fn comments_and_blanks_skipped() {
 }
 
 #[test]
+fn inline_hash_comment_matches_comment_free_graph() {
+    // nx.parse_edgelist truncates at the first '#' anywhere on a line before
+    // tokenising: "1 2#c" is edge (1,2); "0 #x" is a lone token and is skipped.
+    // Both inputs must yield the identical graph.
+    let with_comments = "0 1\n1 2#c\n2 3\n0 #x\n";
+    let clean = "0 1\n1 2\n2 3\n";
+    let a = average_neighbor_degree(&parse_edgelist(with_comments));
+    let b = average_neighbor_degree(&parse_edgelist(clean));
+    assert_eq!(a.len(), b.len(), "node counts differ: {a:?} vs {b:?}");
+    for ((na, va), (nb, vb)) in a.iter().zip(b.iter()) {
+        assert_eq!(na, nb, "node order differs");
+        assert!((va - vb).abs() <= EPS, "node {na}: {va} vs {vb}");
+    }
+    // Guard against the spurious "2#c" / "#x" nodes the old parser produced.
+    let names: Vec<&str> = a.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(names, ["0", "1", "2", "3"]);
+}
+
+#[test]
 fn parallel_edges_deduped() {
     // Adding the same edge twice should not double-count
     let mut g = rsomics_average_neighbor_degree::Graph::new();
